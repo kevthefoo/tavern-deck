@@ -1,8 +1,8 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { defaultDeck, type Deck } from "./decks";
-export type LogSettings = { root: string; file: string; playerName: string };
-export type LocalState = { version: 1; decks: Deck[]; activeId: string; settings?: LogSettings };
+export type LogSettings = { root: string; file: string; playerName: string; autoDetect?: boolean };
+export type LocalState = { version: 1; decks: Deck[]; activeId: string; settings?: LogSettings; autoDeck?: {fingerprint:string} };
 const stateFile = () => path.join(process.env.TAVERN_DATA_DIR || path.join(process.cwd(),"data"),"settings.json");
 export async function readState(): Promise<LocalState> {
   try {

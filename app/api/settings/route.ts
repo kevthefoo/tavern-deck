@@ -15,7 +15,8 @@ export async function POST(request:Request) {
     if(text.length>12000) throw new Error("Settings are too long.");
     const body=JSON.parse(text);
     for(const key of ["root","file","playerName"]) if(typeof body[key]!=="string") throw new Error("Invalid settings.");
-    const settings={root:body.root.trim(),file:body.file.trim(),playerName:body.playerName.trim()};
+    if(body.autoDetect!==undefined && typeof body.autoDetect!=="boolean") throw new Error("Invalid automatic detection setting.");
+    const settings={root:body.root.trim(),file:body.file.trim(),playerName:body.playerName.trim(),autoDetect:body.autoDetect ?? true};
     if(settings.playerName.length>128) throw new Error("Player name is too long.");
     for(const [key,value] of [["root",settings.root],["file",settings.file]]) {
       if(!value) continue;

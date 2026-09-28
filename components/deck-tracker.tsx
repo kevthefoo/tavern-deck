@@ -44,6 +44,7 @@ const classIconUrl = (name: string) =>
 export function DeckTracker() {
   const [deck, setDeck] = useState<Deck>(defaultDeck);
   const [ready, setReady] = useState(false);
+  const [autoStatus,setAutoStatus]=useState("Detecting your Hearthstone deck…");
   const initialCards = deck.cards;
   const deckClass = deck.className;
   const [previewCard, setPreviewCard] = useState<Card | null>(null);
@@ -58,17 +59,39 @@ export function DeckTracker() {
       "connecting" | "connected" | "stale" | "missing" | "idle"
     >("connecting"),
     [logPath, setLogPath] = useState("");
-  useEffect(() => {
-    let active = true;
-    fetch("/api/decks").then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(data => {
-      if (active) { const selected = data.decks.find((d: Deck) => d.id === data.activeId); setDeck(selected); setCards(selected.cards); setReady(true); }
-    }).catch(() => { if (active) setToast("Could not load saved decks. Reload to retry."); });
-    return () => { active = false; };
-  }, []);
+  const activeDeckId=useRef(defaultDeck.id);
   const cursor = useRef(0),
     source = useRef(""),
     gameId = useRef<string | null>(null),
     seen = useRef(new Set<string>());
+  useEffect(() => {
+    let active=true;
+    let timer:number|undefined;
+    let currentId="";
+    async function refreshDeck(){
+      try{
+        const response=await fetch("/api/decks/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}",cache:"no-store"});
+        const data=await response.json();
+        if(!response.ok || !data.deck)throw new Error();
+        if(!active)return;
+        setAutoStatus(data.message);
+        if(data.deck.id!==currentId){
+          currentId=data.deck.id;activeDeckId.current=data.deck.id;
+          gameId.current=null;seen.current.clear();source.current="";cursor.current=0;
+          setDeck(data.deck);setCards(data.deck.cards);setDeckCount(null);setMatch(null);setWinStats(null);setPreviewCard(null);
+        }else setDeck(previous=>previous.name===data.deck.name?previous:{...previous,name:data.deck.name});
+        setReady(true);
+      }catch{if(active)setAutoStatus("Could not check for decks. Retrying…");}
+      if(active)timer=window.setTimeout(refreshDeck,2000);
+    }
+    // Show saved cards immediately, even if the catalog is slow or offline.
+    fetch("/api/decks").then(r=>{if(!r.ok)throw new Error();return r.json();}).then(data=>{
+      if(!active)return;
+      const selected=data.decks.find((d:Deck)=>d.id===data.activeId);
+      currentId=selected.id;activeDeckId.current=selected.id;setDeck(selected);setCards(selected.cards);setReady(true);
+    }).catch(()=>{if(active)setToast("Could not load saved decks. Reload to retry.");}).finally(()=>{if(active)void refreshDeck();});
+    return ()=>{active=false;if(timer!==undefined)window.clearTimeout(timer);};
+  }, []);
   const total = cards.reduce((s, c) => s + c.copies, 0),
     trackedRemaining = cards.reduce((s, c) => s + c.copies - c.drawn, 0),
     remaining = deckCount ?? trackedRemaining,
@@ -103,6 +126,7 @@ export function DeckTracker() {
   useEffect(() => {
     if (!ready) return;
     let active = true;
+    const expectedDeck=deck.id;
     function resetDeck() {
       setMatch(null);
       gameId.current=null;
@@ -118,7 +142,7 @@ export function DeckTracker() {
             { cache: "no-store" },
           ),
           data = await response.json();
-        if (!active) return;
+        if (!active || activeDeckId.current!==expectedDeck) return;
         if (!data.connected) {
           setTracker("missing");
           resetDeck();
@@ -200,7 +224,7 @@ export function DeckTracker() {
                 };
             } catch {}
           }
-          if(!active) return;
+          if(!active || activeDeckId.current!==expectedDeck) return;
           setCards((list) => {
             const index = list.findIndex(
               (card) =>
@@ -243,7 +267,7 @@ export function DeckTracker() {
           window.setTimeout(() => setToast(""), 1800);
         }
       } catch {
-        if (active) { setTracker("missing"); resetDeck(); }
+        if (active && activeDeckId.current===expectedDeck) { setTracker("missing"); resetDeck(); }
       }
     }
     // Never overlap polls. Large Power.log responses used to arrive out of order
@@ -269,7 +293,7 @@ export function DeckTracker() {
         const data = await fetch(`/api/stats?deck=${encodeURIComponent(deck.id)}`, { cache: "no-store" }).then(
           (response) => { if (!response.ok) throw new Error(); return response.json(); },
         );
-        if (active && (!newestUpdate || data.updatedAt >= newestUpdate)) {
+        if (active && activeDeckId.current===deck.id && (!newestUpdate || data.updatedAt >= newestUpdate)) {
           newestUpdate = data.updatedAt;
           setWinStats(data);
           setStatsError(false);
@@ -320,6 +344,7 @@ export function DeckTracker() {
         <div className="deck-title">
           <span>{deckClass.toUpperCase()} · {deck.format.toUpperCase()}</span>
           <h1>{ready ? deck.name : "Loading deck…"}</h1>
+          <Link href="/settings" className="auto-deck-status" title={autoStatus}>{autoStatus}</Link>
         </div>
         <Link href="/decks" className="deck-switch">
           Switch deck <ChevronDown size={16} />

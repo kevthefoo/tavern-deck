@@ -6,6 +6,7 @@ A local Hearthstone deck tracker built with Next.js. Import deck codes, switch b
 
 ## 功能
 
+- **自動牌組**：首頁開啟時，每 2 秒讀取目前場次的 `Decks.log`，自動匯入並切換；可在 Log settings 關閉。手動選牌會保留到遊戲產生下一筆牌組紀錄。
 - **牌組管理**：貼上代碼或遊戲匯出的完整文字，自動解析卡牌、職業與模式。支援切換、命名、複製代碼及刪除。
 - **本機同步**：每 0.8 秒讀取 `Power.log`，追蹤抽牌、洗回牌庫與生成卡牌；新對局自動重置。
 - **日誌設定頁**：輸入並檢查日誌路徑，保存後立即生效，不用手動修改環境檔。
@@ -53,10 +54,12 @@ npm run start -- --port 3080
 
 ## 第一次使用
 
-1. 首頁選 **Switch deck**，貼上 Hearthstone 的牌組代碼或完整匯出文字，按 **Import & select**。
-2. 選 **Use deck** 切換牌組，回到 **Tracker**。選擇會保存於本機。
-3. 進入 **Log settings**，填寫遊戲日誌的 Logs 目錄，按 **Save & check paths**。
-4. 開始對局；若日誌無法辨識本機玩家，可在設定頁填入日誌中顯示的精確玩家名稱。鏡像對局不會以職業猜測玩家。
+1. 先啟用下方的 `[Power]` 和 `[Decks]` 日誌設定，重新啟動 Hearthstone。
+2. 在 **Log settings** 設定 Logs 目錄，保持 **Automatically import and switch decks** 開啟。回到首頁，在遊戲內選擇牌組並進入對局；遊戲輸出完整牌組代碼後，追蹤器會自動切換。
+3. 沒有 Decks.log 或遊戲版本不輸出牌組時，可選 **Switch deck**，貼上代碼後按 **Import & select**。
+4. 選 **Use deck** 切換牌組，回到 **Tracker**。選擇會保存於本機。
+5. 進入 **Log settings**，填寫遊戲日誌的 Logs 目錄，按 **Save & check paths**。
+6. 開始對局；若日誌無法辨識本機玩家，可在設定頁填入日誌中顯示的精確玩家名稱。鏡像對局不會以職業猜測玩家。
 
 預設內附作者的 **Draw it / Hunter / Standard** 30 張牌表（2026-09-28 版本），可更名或在匯入另一副後刪除。匯入功能不替你檢查當前賽季的完整構築合法性。
 
@@ -71,9 +74,16 @@ FilePrinting=True
 ConsolePrinting=False
 ScreenPrinting=False
 Verbose=True
+
+[Decks]
+LogLevel=1
+FilePrinting=True
+ConsolePrinting=False
+ScreenPrinting=False
+Verbose=True
 ```
 
-重新啟動並進入對局，找到實際產生的 `Power.log`。依安裝方式，它可能位於遊戲安裝目錄的 `Logs` 下；請以實際檔案為準。
+重新啟動、選擇牌組並進入對局，找到實際產生的 `Power.log` 與 `Decks.log`。依安裝方式，它可能位於遊戲安裝目錄的 `Logs` 下；請以實際檔案為準。
 
 設定頁中的 Logs folder 可指向含場次子目錄的目錄，或直接含 `Power.log` 的目錄：
 
@@ -106,6 +116,7 @@ Windows 可以使用正斜線路徑。WSL／Linux 必須填入執行追蹤器的
 
 - **匯入失敗**：確認完整複製牌組代碼，並可連線至 HearthstoneJSON。未知卡牌或格式會顯示錯誤；已保存的牌表不需要重新下載卡牌資料才能顯示。
 - **Sideboard**：保留於匯出的原始代碼中，追蹤器只列出主牌組。不是完整 sideboard 管理器。
+- **沒有自動換牌組**：確認設定頁已開啟自動偵測，遊戲重啟後的最新場次有 `Decks.log`，且包含 `### 牌組名稱` 與完整牌組代碼。首頁會顯示等待或錯誤狀態。只監看最新場次，不會回頭套用舊場次牌組；若指定了單一 Power.log，則監看同目錄的 Decks.log。日誌不保證列出收藏中的所有牌組。
 - **沒有同步**：確認路徑可讀且檔案更新。對局中請選擇與正在遊玩的牌組相符的牌表。
 - **鏡像／未知玩家**：有本機玩家日誌資訊時優先採用；否則只在職業唯一時辨識，無法確定時要求填玩家名稱，不猜測。
 - **戰績差異**：統計屬於該職業，並非精確牌組；不完整或無法辨識玩家的對局會略過。日誌備份不自動併入統計，避免重複計算。
