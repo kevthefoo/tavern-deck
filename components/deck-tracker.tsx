@@ -1,8 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, Check, ChevronDown, Radio, Sparkles } from "lucide-react";
-import AoeReminder from "./aoe-reminder";
-import type { MatchContext } from "@/lib/match-context";
 import { defaultDeck, type Deck, type Card, type Rarity } from "@/lib/decks";
 import Link from "next/link";
 type WinRateRow = {
@@ -51,7 +49,6 @@ export function DeckTracker() {
   const [winStats, setWinStats] = useState<WinStats | null>(null);
   const [statsError, setStatsError] = useState(false);
   const [statsRange, setStatsRange] = useState<StatsRange>("all");
-  const [match, setMatch] = useState<MatchContext | null>(null);
   const [cards, setCards] = useState(initialCards),
     [deckCount, setDeckCount] = useState<number | null>(null),
     [toast, setToast] = useState("");
@@ -78,7 +75,7 @@ export function DeckTracker() {
         if(data.deck.id!==currentId){
           currentId=data.deck.id;activeDeckId.current=data.deck.id;
           gameId.current=null;seen.current.clear();source.current="";cursor.current=0;
-          setDeck(data.deck);setCards(data.deck.cards);setDeckCount(null);setMatch(null);setWinStats(null);setPreviewCard(null);
+          setDeck(data.deck);setCards(data.deck.cards);setDeckCount(null);setWinStats(null);setPreviewCard(null);
         }else setDeck(previous=>previous.name===data.deck.name?previous:{...previous,name:data.deck.name});
         setReady(true);
       }catch{if(active)setAutoStatus("Could not check for decks. Retrying…");}
@@ -128,7 +125,6 @@ export function DeckTracker() {
     let active = true;
     const expectedDeck=deck.id;
     function resetDeck() {
-      setMatch(null);
       gameId.current=null;
       seen.current.clear();
       setCards(initialCards);
@@ -161,7 +157,6 @@ export function DeckTracker() {
           return;
         }
         setTracker("connected");
-        setMatch(data.match ?? null);
         setLogPath(data.path);
         if (source.current && source.current !== data.source)
           seen.current.clear();
@@ -368,7 +363,6 @@ export function DeckTracker() {
             <small> cards</small>
           </strong>
         </div>
-        <AoeReminder key={match ? `${match.opponentClass}-${match.format}` : "idle"} match={match} />
         <div className="performance">
           <div className="performance-head">
             <span>{deckClass.toUpperCase()} HISTORY</span>

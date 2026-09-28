@@ -3,7 +3,7 @@ import { identifyPlayer, heroClasses } from "@/lib/player-identity";
 import { access, open, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { contextStart, parseMatchContext } from "@/lib/match-context";
+import { contextStart } from "@/lib/match-context";
 import { friendlyDeckCount, latestGameSlice, matchStatus, parsePowerLog, resetPowerLogState } from "@/lib/power-log";
 
 export const runtime = "nodejs";
@@ -79,5 +79,5 @@ export async function GET(request: Request) {
   // from a decoded UTF-8 string drifts when player names contain non-ASCII text.
   const gameStartLine=latest.contents.split(/\r?\n/,1)[0] || null;
   const gameId=gameStartLine ? `${file}:${gameStartLine}` : null;
-  return Response.json({ connected:true, status, stale, identityResolved: Boolean(playerId), deckMismatch, localClass, match:status === "active" ? parseMatchContext(contextInput) : null, cursor:info.size, source:file, gameId:status==="active" ? gameId : null, deckCount, snapshot:true, events, modifiedAt:info.mtime.toISOString(), path:file });
+  return Response.json({ connected:true, status, stale, identityResolved: Boolean(playerId), deckMismatch, localClass, cursor:info.size, source:file, gameId:status==="active" ? gameId : null, deckCount, snapshot:true, events, modifiedAt:info.mtime.toISOString(), path:file });
 }
